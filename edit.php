@@ -1,9 +1,35 @@
+<?php
+include 'index.php';
+
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $id = intval($_GET['id']);
+
+    $result = $conn->query("SELECT * FROM tasks WHERE id = $id");
+
+    $task = $result->fetch_assoc();
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $task = trim($_POST['task']);
+    if (!empty($task)) {
+        $stmt = $conn->prepare("UPDATE tasks SET task=? WHERE id=?");
+        $stmt->bind_param("si", $task, $id); 
+        if ($stmt->execute()) {
+            header("Location: index.php");
+            exit; 
+        }
+        $stmt->close();
+    } 
+}
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do List</title>
+    <title>Edit Task</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,42 +104,12 @@
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1>To-Do List Application</h1>
-
-    <div class="add-task">
-        <h2>Add Task</h2>
-        <form action="add_task.php" method="POST">
-            <input type="text" name="task" placeholder="Add a new task" required>
-            <button type="submit" class="button">Add Task</button>
+    <div class="container">
+        <h2>Edit Task</h2>
+        <form action="edit_task.php?id=<?php echo $id; ?>" method="POST">
+            <input type="text" name="task" value="<?php echo htmlspecialchars($task['task']); ?>" required>
+            <button type="submit" class="button">Update Task</button>
         </form>
     </div>
-
-    <h2>Your Tasks</h2>
-    <?php
-    $conn = new mysqli('localhost', 'root', '', 'todo_app');
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-
-    $result = $conn->query("SELECT * FROM tasks");
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $task = htmlspecialchars($row['task']);
-            echo "<div class='task'>
-                    <span>{$task}</span>
-                    <div>
-                        <a class='link-button' href='edit_task.php?id={$row['id']}'>Edit</a>
-                        <a class='link-button' href='delete_task.php?id={$row['id']}'>Delete</a>
-                    </div>
-                  </div>";
-        }
-    } else {
-        echo "<div>No tasks found.</div>";
-    }
-    ?>
-</div>
-
 </body>
 </html>
